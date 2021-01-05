@@ -76,7 +76,7 @@ int main(int argc, char *argv[]) {
   }
     
   rc = fread(&n_vertices, sizeof(n_vertices), 1, fp);
-  rc = fread(&n_edges, sizeof(n_vertices), 1, fp);
+  rc = fread(&n_edges, sizeof(n_edges), 1, fp);
 
   if(need_bswap) {
     n_vertices = byteSwap(n_vertices);
