@@ -87,6 +87,17 @@ uint32_t bfs_v3(uint32_t src, const graph *g) {
   return visited.popcount();
 }
 
+std::ostream &operator<<(std::ostream &out, const __m512i &v) {
+  int32_t arr[16] = {0};
+  _mm512_storeu_epi32(arr, v);
+  for(int i = 0; i < 16; i++) {
+    out << arr[i];
+    if(i != 15)
+      out << ",";
+  }
+  return out;
+}
+
 uint32_t bfs_avx512(uint32_t src, const graph *g) {
   uint32_t n = next_pow2(g->n_vertices);
   uint32_t *frontier = nullptr, *visited = nullptr;
@@ -116,7 +127,7 @@ uint32_t bfs_avx512(uint32_t src, const graph *g) {
 	if(not(visited[v])) {
 	  uint32_t k = (next_cnt + next_start) & (n-1);
 	  frontier[k] = v;
-	  visited[v];
+	  visited[v] = 1;
 	  next_cnt++;
 	}
       }
@@ -126,25 +137,15 @@ uint32_t bfs_avx512(uint32_t src, const graph *g) {
   }
   delete [] frontier;
 
-  uint32_t pc = 0;
-  for(uint32_t i = 0; i < n; i++) {
-    pc += visited[i];
-  }
-  
   __m512i vpc = _mm512_set1_epi32(0);
   __m512i vidx = _mm512_set_epi32(15,14,13,12,11,10,9,8,7,6,5,4,3,2,1,0);
-  for(uint32_t i = 0; i < n; i++) {
+  for(uint32_t i = 0; i < n; i += 16) {
     __mmask16 k = _mm512_cmp_epi32_mask(vidx, _mm512_set1_epi32(n), _MM_CMPINT_LT);
-    __m512i t = _mm512_mask_load_epi32 (_mm512_set1_epi32(0), k, &visited[i]);
+    __m512i t = _mm512_mask_loadu_epi32 (_mm512_set1_epi32(0), k, &visited[i]);
     vpc = _mm512_add_epi32(vpc, t);
-    vidx = _mm512_add_epi32(vidx, _mm512_set1_epi32(1));
+    vidx = _mm512_add_epi32(vidx, _mm512_set1_epi32(16));
   }
-  int t_pc = _mm512_reduce_add_epi32(vpc);
-
-  if(t_pc != pc) {
-    std::cout << "avx512 warmup failed\n";
-  }
-  
+  int pc = _mm512_reduce_add_epi32(vpc);
   delete [] visited;  
   return pc;
 }

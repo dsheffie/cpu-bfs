@@ -9,9 +9,9 @@
 #include <type_traits>
 #include <sys/mman.h>
 
-#ifdef __linux__
-#define USE_MMAP
-#endif
+//#ifdef __linux__
+//#define USE_MMAP
+//#endif
 
 struct graph {
   uint32_t n_vertices;
