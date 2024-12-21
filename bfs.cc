@@ -7,6 +7,8 @@
 #include <cstdlib>
 #include <pthread.h>
 
+#include <x86intrin.h>
+
 #include "bitvec.hh"
 #include "graph.hh"
 
@@ -84,6 +86,69 @@ uint32_t bfs_v3(uint32_t src, const graph *g) {
   delete [] frontier;
   return visited.popcount();
 }
+
+uint32_t bfs_avx512(uint32_t src, const graph *g) {
+  uint32_t n = next_pow2(g->n_vertices);
+  uint32_t *frontier = nullptr, *visited = nullptr;
+  uint32_t curr_start = 0, curr_cnt = 0;
+  uint32_t next_start = 0, next_cnt = 0;
+
+  frontier = new uint32_t[n];
+  visited = new uint32_t[n];
+  memset(visited, 0, sizeof(uint32_t)*n);
+  frontier[next_cnt++] = src;
+
+  visited[src] = 1;
+
+  while(next_cnt != 0) {
+    curr_cnt = next_cnt;
+    curr_start = next_start;
+    next_cnt = 0;
+    next_start = (curr_start + curr_cnt) & (n-1);
+    
+    for(uint32_t ii = 0; ii < curr_cnt; ++ii) {
+      uint32_t i = (ii + curr_start) & (n-1);
+      uint32_t u = frontier[i];
+      
+      for(uint32_t j = g->edge_offs[u], jj = g->edge_offs[u+1]; j < jj; ++j) {
+	uint32_t v = g->edges[j];
+	
+	if(not(visited[v])) {
+	  uint32_t k = (next_cnt + next_start) & (n-1);
+	  frontier[k] = v;
+	  visited[v];
+	  next_cnt++;
+	}
+      }
+      
+    }
+    
+  }
+  delete [] frontier;
+
+  uint32_t pc = 0;
+  for(uint32_t i = 0; i < n; i++) {
+    pc += visited[i];
+  }
+  
+  __m512i vpc = _mm512_set1_epi32(0);
+  __m512i vidx = _mm512_set_epi32(15,14,13,12,11,10,9,8,7,6,5,4,3,2,1,0);
+  for(uint32_t i = 0; i < n; i++) {
+    __mmask16 k = _mm512_cmp_epi32_mask(vidx, _mm512_set1_epi32(n), _MM_CMPINT_LT);
+    __m512i t = _mm512_mask_load_epi32 (_mm512_set1_epi32(0), k, &visited[i]);
+    vpc = _mm512_add_epi32(vpc, t);
+    vidx = _mm512_add_epi32(vidx, _mm512_set1_epi32(1));
+  }
+  int t_pc = _mm512_reduce_add_epi32(vpc);
+
+  if(t_pc != pc) {
+    std::cout << "avx512 warmup failed\n";
+  }
+  
+  delete [] visited;  
+  return pc;
+}
+
 
 struct bfs_t {
   graph *g;

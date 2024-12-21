@@ -118,20 +118,14 @@ int main(int argc, char *argv[]) {
   now = timestamp() - now;
   std::cout << "vv = " << vv << "\n";
   std::cout << "bfs_v2 took " << now << " seconds\n";
-  
-  now = timestamp();
-  vv = dfs(9, g);
-  now = timestamp() - now;  
-  std::cout << "vv = " << vv << "\n";
-  std::cout << "dfs took " << now << " seconds\n";
-  
 
   now = timestamp();
-  vv = bfs_thr(9, g);
-  now = timestamp() - now;  
+  vv = bfs_avx512(9, g);
+  now = timestamp() - now;
   std::cout << "vv = " << vv << "\n";
-  std::cout << "parallel bfs with " << nthr << " threads took "
-	    << now << " seconds\n";
+  std::cout << "bfs_avx512 took " << now << " seconds\n";
+
+
 
   getrusage(RUSAGE_SELF,&usage);
   std::cout << usage << "\n";

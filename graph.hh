@@ -86,6 +86,7 @@ uint32_t bfs(uint32_t src, const graph *g);
 uint32_t dfs(uint32_t src, const graph *g);
 uint32_t bfs_v2(uint32_t src, const graph *g);
 uint32_t bfs_v3(uint32_t src, const graph *g);
+uint32_t bfs_avx512(uint32_t src, const graph *g);
 uint32_t bfs_thr(uint32_t src, const graph *g);
 
 #endif
