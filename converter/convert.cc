@@ -77,7 +77,7 @@ bool parse(std::string &line, uint32_t &src, uint32_t &dst) {
 static const uint32_t magic = 0xdeadbeef;
 
 int main(int argc, char *argv[]) {
-  std::map<uint32_t, std::list<uint32_t>> g;
+  std::map<uint32_t, std::set<uint32_t>> g;
   uint32_t src, dst;
   std::string line;
   
@@ -95,16 +95,18 @@ int main(int argc, char *argv[]) {
     if(d) {
       vertices.insert(src);
       vertices.insert(dst);
-      g[src].push_back(dst);
-      n_edges++;
+      if(g[src].find(dst) == g[src].end()) {
+	g[src].insert(dst);
+	n_edges++;
+      }
       max_vertex = std::max(max_vertex, src);
       max_vertex = std::max(max_vertex, dst);
     }
   }
-  for(auto v : g) {
-    std::list<uint32_t> &edge_list = v.second;
-    edge_list.sort();
-  }
+  //for(auto v : g) {
+  //std::list<uint32_t> &edge_list = v.second;
+  //edge_list.sort();
+  //}
   myfile.close();
 
   
@@ -123,8 +125,8 @@ int main(int argc, char *argv[]) {
   }
   uint32_t p = 0;
   for(uint32_t v = 0; v < max_vertex; v++) {
-    std::list<uint32_t> &edge_list = g[v];
-    for(uint32_t e : edge_list) {
+    auto &edge_set = g[v];
+    for(uint32_t e : edge_set) {
       edges[p++] = e;
     }
   }

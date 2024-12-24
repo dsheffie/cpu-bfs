@@ -34,6 +34,24 @@ static double timestamp() {
 
 extern uint32_t nthr;
 
+bool graph::sanity_check() const {
+  for(uint32_t i = 0; i < n_vertices; i++) {
+    uint32_t s = edge_offs[i], e = edge_offs[i+1];
+    if((e-s)==0)
+      continue;
+    uint32_t m = edges[s];
+    for(uint32_t j = 1; j < (e-s); j++) {
+      if(edges[j+s] < m) {
+	printf("edge ordering broken\n");
+	return false;
+	      
+      }
+      m = edges[j+s];
+    }
+  }
+  return true;
+}
+
 int main(int argc, char *argv[]) {
   int c;
   bool need_bswap = false;
@@ -100,6 +118,10 @@ int main(int argc, char *argv[]) {
   std::cout << "graph load took " << now << " seconds\n";
   std::cout << "n_vertices = " << n_vertices << "\n";
   std::cout << "n_edges = " << n_edges << "\n";
+
+  if(not(g->sanity_check())) {
+    goto done;
+  }
   
   //now = timestamp();
   //vv = stl_bfs(9, g);
@@ -125,8 +147,8 @@ int main(int argc, char *argv[]) {
   std::cout << "vv = " << vv << "\n";
   std::cout << "bfs_avx512 took " << now << " seconds\n";
 
-
-
+  
+ done:
   getrusage(RUSAGE_SELF,&usage);
   std::cout << usage << "\n";
   delete g;
