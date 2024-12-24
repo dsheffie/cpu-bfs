@@ -150,40 +150,30 @@ uint32_t bfs_avx512(uint32_t src, const graph *g) {
 	k = _kand_mask16(k, kk);
 	int nv = _mm512_mask2int(k);
 
+	/* scatter back updated visited values */
+	_mm512_mask_i32scatter_epi32 (visited, k, v_vertices, _mm512_set1_epi32(1), 4);
+	
+	
 	int32_t punt[16] = {0};
 	_mm512_storeu_epi32(punt, v_vertices);
-	
+
+	int p = next_cnt;
 	for(int z = 0; z < 16; z++) {
 	  int32_t v = punt[z];
 	  if(( (1<<z) & nv ) == 0)
 	    continue;
 	  //printf("vertex %d was not visited\n", v);
 	  
-	  next_frontier[next_cnt++] = v;
-	  
-	  if(visited[v]) {
-	    printf("vertex %u already visited?, mask = %x\n", v, nv);
-	    exit(-1);
-	  }
-	  assert(visited[v]==0);
-	  visited[v] = 1;
+	  next_frontier[p++] = v;
+	  assert(visited[v]);
 	}
 
-	
-	//exit(-1);
-	
 	/* generate offsets */
 	__m512i vc = _mm512_mask_compress_epi32(_mm512_set1_epi32(0), k, v_incr);
 
-
-	
-	
-	/* increment next_cnt by number of visited elements */
-	//next_cnt += nv;
-
+	next_cnt += __builtin_popcount(nv);
 	vidx = _mm512_add_epi32(vidx, _mm512_set1_epi32(16));
       }
-      
     }
     std::swap(curr_cnt, next_cnt);
     std::swap(curr_frontier, next_frontier);
