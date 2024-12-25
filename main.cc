@@ -130,7 +130,7 @@ int main(int argc, char *argv[]) {
     std::cout << "bfs_v2 took " << now << " seconds\n";
     
     now = timestamp();
-    int v1 = bfs_avx512(root, g, 256);
+    int v1 = bfs_avx512(root, g, 128);
     now = timestamp() - now;
     std::cout << "bfs_avx512 took " << now << " seconds\n";
     
