@@ -123,7 +123,7 @@ int main(int argc, char *argv[]) {
     return -1;
   }
 
-  for(int root : {9, 38, 138, 399, 381}) {
+  for(int root  = 0; root < n_vertices; root++) {
     now = timestamp();
     int v0 = bfs_v2(root, g);
     now = timestamp() - now;
@@ -132,10 +132,21 @@ int main(int argc, char *argv[]) {
     now = timestamp();
     int v1 = bfs_avx512(root, g, 128);
     now = timestamp() - now;
-    std::cout << "bfs_avx512 took " << now << " seconds\n";
+    std::cout << "xmm bfs_avx512 took " << now << " seconds\n";
     
-    if(v0 != v1) {
-      printf("v0 = %d, v1 = %d\n", v0, v1);
+    now = timestamp();
+    int v2 = bfs_avx512(root, g, 256);
+    now = timestamp() - now;
+    std::cout << "ymm bfs_avx512 took " << now << " seconds\n";
+    
+
+    now = timestamp();
+    int v3 = bfs_avx512(root, g, 512);
+    now = timestamp() - now;
+    std::cout << "zmm bfs_avx512 took " << now << " seconds\n";
+       
+    if(v0 != v1 or v0 != v2 or v0 != v3) {
+      printf("v0 = %d, v1 = %d, v2 = %d, v3 = %d\n", v0, v1,v2,v3);
       std::cout << "avx512 error\n";
       break;
     }
