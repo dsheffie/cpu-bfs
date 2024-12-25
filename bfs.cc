@@ -98,7 +98,7 @@ std::ostream &operator<<(std::ostream &out, const __m512i &v) {
   return out;
 }
 
-uint32_t bfs_avx512(uint32_t src, const graph *g) {
+uint32_t bfs_avx512(uint32_t src, const graph *g, int vl) {
   uint32_t n = next_pow2(g->n_vertices);
   uint32_t *frontier0 = nullptr, *frontier1 = nullptr;
   uint32_t *visited = nullptr;
@@ -117,41 +117,71 @@ uint32_t bfs_avx512(uint32_t src, const graph *g) {
   curr_frontier[curr_cnt++] = src;
   visited[src] = 1;
 
-  while(curr_cnt != 0) {
-    next_cnt = 0;
-    
-    for(uint32_t ii = 0; ii < curr_cnt; ++ii) {
-      uint32_t u = curr_frontier[ii];
-      //printf("starting from vertex %u\n", u);
-
-      uint32_t s = g->edge_offs[u],e = g->edge_offs[u+1];
-      uint32_t ne = e-s;
-      __m512i v_incr = _mm512_set_epi32(15,14,13,12,11,10,9,8,7,6,5,4,3,2,1,0);
-      __m512i vidx = v_incr;
-
-
-      for(uint32_t j = 0; j < ne; j+= 16) {
-	__mmask16 k = _mm512_cmp_epi32_mask(vidx, _mm512_set1_epi32(ne), _MM_CMPINT_LT);
-	vidx = _mm512_add_epi32(vidx, _mm512_set1_epi32(16));
-	/* load vertices */
-	__m512i v_vertices = _mm512_mask_loadu_epi32(_mm512_set1_epi32(0), k, &g->edges[s+j]);
-	/* gather visited vertices */
-	__m512i v_visited = _mm512_mask_i32gather_epi32(_mm512_set1_epi32(0), k, v_vertices, visited, 4);
-	/*  not visited positions */
-	__mmask16 kk = _mm512_cmp_epi32_mask(v_visited, _mm512_set1_epi32(0), _MM_CMPINT_EQ);
-	k = _kand_mask16(k, kk);
-	int pc = __builtin_popcount(_mm512_mask2int(k));
-	if(pc) {
-	  /* scatter back updated visited values */
-	  _mm512_mask_i32scatter_epi32 (visited, k, v_vertices, _mm512_set1_epi32(1), 4);
-	  /* generate offsets */
-	  _mm512_mask_compressstoreu_epi32(&next_frontier[next_cnt], k, v_vertices);
-	  next_cnt += pc;
+  if(vl == 512) {
+    while(curr_cnt != 0) {
+      next_cnt = 0;
+      for(uint32_t ii = 0; ii < curr_cnt; ++ii) {
+	uint32_t u = curr_frontier[ii];
+	uint32_t s = g->edge_offs[u],e = g->edge_offs[u+1];
+	uint32_t ne = e-s;
+	__m512i v_incr = _mm512_set_epi32(15,14,13,12,11,10,9,8,7,6,5,4,3,2,1,0);
+	__m512i vidx = v_incr;
+	for(uint32_t j = 0; j < ne; j+= 16) {
+	  __mmask16 k = _mm512_cmp_epi32_mask(vidx, _mm512_set1_epi32(ne), _MM_CMPINT_LT);
+	  vidx = _mm512_add_epi32(vidx, _mm512_set1_epi32(16));
+	  /* load vertices */
+	  __m512i v_vertices = _mm512_mask_loadu_epi32(_mm512_set1_epi32(0), k, &g->edges[s+j]);
+	  /* gather visited vertices */
+	  __m512i v_visited = _mm512_mask_i32gather_epi32(_mm512_set1_epi32(0), k, v_vertices, visited, 4);
+	  /*  not visited positions */
+	  __mmask16 kk = _mm512_cmp_epi32_mask(v_visited, _mm512_set1_epi32(0), _MM_CMPINT_EQ);
+	  k = _kand_mask16(k, kk);
+	  int pc = __builtin_popcount(_mm512_mask2int(k));
+	  if(pc) {
+	    /* scatter back updated visited values */
+	    _mm512_mask_i32scatter_epi32 (visited, k, v_vertices, _mm512_set1_epi32(1), 4);
+	    /* generate offsets */
+	    _mm512_mask_compressstoreu_epi32(&next_frontier[next_cnt], k, v_vertices);
+	    next_cnt += pc;
+	  }
 	}
       }
+      std::swap(curr_cnt, next_cnt);
+      std::swap(curr_frontier, next_frontier);
     }
-    std::swap(curr_cnt, next_cnt);
-    std::swap(curr_frontier, next_frontier);
+  }
+  else if(vl == 256) {
+    while(curr_cnt != 0) {
+      next_cnt = 0;
+      for(uint32_t ii = 0; ii < curr_cnt; ++ii) {
+	uint32_t u = curr_frontier[ii];
+	uint32_t s = g->edge_offs[u],e = g->edge_offs[u+1];
+	uint32_t ne = e-s;
+	__m256i v_incr = _mm256_set_epi32(7,6,5,4,3,2,1,0);
+	__m256i vidx = v_incr;
+	for(uint32_t j = 0; j < ne; j+= 8) {
+	  __mmask8 k = _mm256_cmp_epi32_mask(vidx, _mm256_set1_epi32(ne), _MM_CMPINT_LT);
+	  vidx = _mm256_add_epi32(vidx, _mm256_set1_epi32(8));
+	  /* load vertices */
+	  __m256i v_vertices = _mm256_mask_loadu_epi32(_mm256_set1_epi32(0), k, &g->edges[s+j]);
+	  /* gather visited vertices */
+	  __m256i v_visited = _mm256_mmask_i32gather_epi32(_mm256_set1_epi32(0), k, v_vertices, visited, 4);
+	  /*  not visited positions */
+	  __mmask8 kk = _mm256_cmp_epi32_mask(v_visited, _mm256_set1_epi32(0), _MM_CMPINT_EQ);
+	  k = _kand_mask16(k, kk);
+	  int pc = __builtin_popcount(_mm512_mask2int(k));
+	  if(pc) {
+	    /* scatter back updated visited values */
+	    _mm256_mask_i32scatter_epi32 (visited, k, v_vertices, _mm256_set1_epi32(1), 4);
+	    /* generate offsets */
+	    _mm256_mask_compressstoreu_epi32(&next_frontier[next_cnt], k, v_vertices);
+	    next_cnt += pc;
+	  }
+	}
+      }
+      std::swap(curr_cnt, next_cnt);
+      std::swap(curr_frontier, next_frontier);
+    }
   }
   delete [] frontier0;
   delete [] frontier1;
