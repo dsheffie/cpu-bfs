@@ -120,35 +120,27 @@ int main(int argc, char *argv[]) {
   std::cout << "n_edges = " << n_edges << "\n";
 
   if(not(g->sanity_check())) {
-    goto done;
+    return -1;
+  }
+
+  for(int root : {9, 38, 138, 399, 381}) {
+    now = timestamp();
+    int v0 = bfs_v2(root, g);
+    now = timestamp() - now;
+    std::cout << "bfs_v2 took " << now << " seconds\n";
+    
+    now = timestamp();
+    int v1 = bfs_avx512(root, g);
+    now = timestamp() - now;
+    std::cout << "bfs_avx512 took " << now << " seconds\n";
+    
+    if(v0 != v1) {
+      printf("v0 = %d, v1 = %d\n", v0, v1);
+      std::cout << "avx512 error\n";
+      break;
+    }
   }
   
-  //now = timestamp();
-  //vv = stl_bfs(9, g);
-  //now = timestamp() - now;
-  //std::cout << "vv = " << vv << "\n";
-  //std::cout << "stl bfs took " << now << " seconds\n";
-
-  now = timestamp();
-  vv = bfs_v3(9, g);
-  now = timestamp() - now;
-  std::cout << "vv = " << vv << "\n";
-  std::cout << "bfs_v3 took " << now << " seconds\n";
-
-  now = timestamp();
-  vv = bfs_v2(9, g);
-  now = timestamp() - now;
-  std::cout << "vv = " << vv << "\n";
-  std::cout << "bfs_v2 took " << now << " seconds\n";
-
-  now = timestamp();
-  vv = bfs_avx512(9, g);
-  now = timestamp() - now;
-  std::cout << "vv = " << vv << "\n";
-  std::cout << "bfs_avx512 took " << now << " seconds\n";
-
-  
- done:
   getrusage(RUSAGE_SELF,&usage);
   std::cout << usage << "\n";
   delete g;
