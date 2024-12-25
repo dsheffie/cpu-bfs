@@ -145,9 +145,7 @@ uint32_t bfs_avx512(uint32_t src, const graph *g) {
 	  /* scatter back updated visited values */
 	  _mm512_mask_i32scatter_epi32 (visited, k, v_vertices, _mm512_set1_epi32(1), 4);
 	  /* generate offsets */
-	  __m512i vc = _mm512_mask_compress_epi32(_mm512_set1_epi32(0), k, v_vertices);
-	  k = _mm512_int2mask((1<<pc)-1);
-	  _mm512_mask_storeu_epi32(&next_frontier[next_cnt], k, vc);
+	  _mm512_mask_compressstoreu_epi32(&next_frontier[next_cnt], k, v_vertices);
 	  next_cnt += pc;
 	}
       }
