@@ -123,6 +123,8 @@ int main(int argc, char *argv[]) {
     return -1;
   }
 
+  uint32_t *frontier0 = new uint32_t[n_vertices];
+  uint32_t *frontier1 = new uint32_t[n_vertices];
   for(int root  = 0; root < n_vertices; root++) {
     now = timestamp();
     int v0 = bfs_v2(root, g);
@@ -130,18 +132,18 @@ int main(int argc, char *argv[]) {
     std::cout << "bfs_v2 took " << now << " seconds\n";
     
     now = timestamp();
-    int v1 = bfs_avx512(root, g, 128);
+    int v1 = bfs_avx512(root, g, frontier0, frontier1,128);
     now = timestamp() - now;
     std::cout << "xmm bfs_avx512 took " << now << " seconds\n";
     
     now = timestamp();
-    int v2 = bfs_avx512(root, g, 256);
+    int v2 = bfs_avx512(root, g, frontier0, frontier1, 256);
     now = timestamp() - now;
     std::cout << "ymm bfs_avx512 took " << now << " seconds\n";
     
 
     now = timestamp();
-    int v3 = bfs_avx512(root, g, 512);
+    int v3 = bfs_avx512(root, g, frontier0, frontier1, 512);
     now = timestamp() - now;
     std::cout << "zmm bfs_avx512 took " << now << " seconds\n";
        
@@ -155,6 +157,8 @@ int main(int argc, char *argv[]) {
   getrusage(RUSAGE_SELF,&usage);
   std::cout << usage << "\n";
   delete g;
+  delete [] frontier0;
+  delete [] frontier1;
   
   return 0;
 }

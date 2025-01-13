@@ -98,15 +98,11 @@ std::ostream &operator<<(std::ostream &out, const __m512i &v) {
   return out;
 }
 
-uint32_t bfs_avx512(uint32_t src, const graph *g, int vl) {
+uint32_t bfs_avx512(uint32_t src, const graph *g, uint32_t *frontier0, uint32_t *frontier1 , int vl) {
   uint32_t n = next_pow2(g->n_vertices);
-  uint32_t *frontier0 = nullptr, *frontier1 = nullptr;
   uint32_t *visited = nullptr;
   uint32_t curr_start = 0, curr_cnt = 0;
   uint32_t next_start = 0, next_cnt = 0;
-
-  frontier0 = new uint32_t[n];
-  frontier1 = new uint32_t[n];
   
   visited = new uint32_t[n];
   memset(visited, 0, sizeof(uint32_t)*n);
@@ -213,8 +209,6 @@ uint32_t bfs_avx512(uint32_t src, const graph *g, int vl) {
       std::swap(curr_frontier, next_frontier);
     }
   }
-  delete [] frontier0;
-  delete [] frontier1;
 
   __m512i vpc = _mm512_set1_epi32(0);
   __m512i vidx = _mm512_set_epi32(15,14,13,12,11,10,9,8,7,6,5,4,3,2,1,0);
