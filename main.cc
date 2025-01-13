@@ -127,7 +127,7 @@ int main(int argc, char *argv[]) {
   uint32_t *frontier1 = new uint32_t[n_vertices];
   for(int root  = 0; root < n_vertices; root++) {
     now = timestamp();
-    int v0 = bfs_v2(root, g);
+    int v0 = bfs_v2(root, g, frontier0);
     now = timestamp() - now;
     std::cout << "bfs_v2 took " << now << " seconds\n";
     
